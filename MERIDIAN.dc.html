@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #0B1220; }
+* { -webkit-tap-highlight-color: transparent; }
+a { color: #E0B356; text-decoration: none; }
+a:hover { color: #F0CE86; }
+@keyframes mrd-pulse { 0% { transform: scale(1); opacity: .95 } 50% { transform: scale(1.55); opacity: .35 } 100% { transform: scale(1); opacity: .95 } }
+@keyframes mrd-halo { 0% { transform: scale(.7); opacity: .55 } 70% { transform: scale(2.6); opacity: 0 } 100% { transform: scale(2.6); opacity: 0 } }
+@keyframes mrd-load { 0% { transform: translateX(-100%) } 100% { transform: translateX(320%) } }
+.mrd-scroll::-webkit-scrollbar { width: 4px }
+.mrd-scroll::-webkit-scrollbar-thumb { background: rgba(201,162,39,.35); border-radius: 4px }
+.mrd-gal::-webkit-scrollbar { height: 0 }
+</style>
+<script src="./image-slot.js"></script>
+<script src="https://unpkg.com/three@0.149.0/build/three.min.js"></script>
+</helmet>
+
+<div style="position:relative;width:100%;height:100vh;overflow:hidden;background-image:radial-gradient(120% 90% at 50% 45%, rgba(16,27,49,.55) 0%, rgba(11,18,32,.78) 55%, rgba(5,8,15,.94) 100%), url('https://images.unsplash.com/photo-1658237775407-aed6450f5851?q=80&w=2400&auto=format&fit=crop&fm=jpg');background-size:cover,cover;background-position:center,center;background-repeat:no-repeat,no-repeat;font-family:Manrope,system-ui,sans-serif;color:#F2EEE6">
+
+  <div ref="{{ stageRef }}" style="position:absolute;inset:0;touch-action:none;cursor:grab">
+    <canvas ref="{{ canvasRef }}" style="position:absolute;inset:0;width:100%;height:100%;display:block"></canvas>
+    <div ref="{{ sweepRef }}" style="position:absolute;inset:0;pointer-events:none;z-index:2;opacity:0;mix-blend-mode:screen;background:linear-gradient(115deg, transparent 40%, rgba(255,246,224,.65) 50%, transparent 60%);transform:translateX(-70%)"></div>
+    <div ref="{{ markersRef }}" style="position:absolute;inset:0;pointer-events:none">
+      <sc-for list="{{ dests }}" as="d" hint-placeholder-count="12">
+        <button type="button" data-marker-id="{{ d.id }}" onClick="{{ onMarkerClick }}" onPointerEnter="{{ onMarkerEnter }}" onPointerLeave="{{ onMarkerLeave }}" style="position:absolute;left:0;top:0;margin:-10px 0 0 -10px;display:flex;align-items:center;gap:11px;background:none;border:0;padding:0;opacity:0;pointer-events:none;font-family:Manrope,sans-serif;cursor:pointer;will-change:transform,opacity">
+          <span data-dot style="position:relative;width:20px;height:20px;flex:0 0 20px;display:block">
+            <span data-core style="position:absolute;inset:7px;border-radius:50%;background:radial-gradient(circle at 35% 32%,#FFF8E8 0%,#F0CE86 55%,#C9A227 100%);box-shadow:0 0 9px 1.5px rgba(224,179,86,.9)"></span>
+            <span style="position:absolute;inset:3px;border-radius:50%;border:1.4px solid rgba(240,206,134,.95)"></span>
+            <span style="position:absolute;inset:1px;border-radius:50%;border:1px solid rgba(224,179,86,.55);animation:mrd-halo 2.8s ease-out infinite"></span>
+            <span data-flash style="position:absolute;inset:1px;border-radius:50%;border:1.4px solid #F0CE86;opacity:0"></span>
+          </span>
+          <span data-label style="white-space:nowrap;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#F2EEE6;padding:4px 9px;background:rgba(5,8,15,.4);border:1px solid rgba(201,162,39,.16);text-shadow:0 1px 6px rgba(0,0,0,.7);transition:opacity .28s ease">{{ d.name }}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div ref="{{ chromeRef }}" style="position:absolute;inset:0;pointer-events:none;opacity:0">
+    <div style="position:absolute;top:0;left:0;right:0;display:flex;align-items:flex-start;justify-content:space-between;padding:30px 34px;gap:20px">
+      <div style="pointer-events:auto">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:23px;letter-spacing:.5em;color:#F2EEE6;line-height:1">MERIDIAN</div>
+        <div style="margin-top:9px;font-size:9.5px;letter-spacing:.34em;text-transform:uppercase;color:rgba(224,179,86,.8)">Távoli úti célok · 2026</div>
+      </div>
+      <button type="button" onClick="{{ openContact }}" style="pointer-events:auto;background:rgba(242,238,230,.04);border:1px solid rgba(201,162,39,.4);color:#F2EEE6;padding:11px 20px;font-family:Manrope,sans-serif;font-size:10px;letter-spacing:.28em;text-transform:uppercase;cursor:pointer;backdrop-filter:blur(10px)" style-hover="background:rgba(201,162,39,.16);border-color:rgba(224,179,86,.75)">Kapcsolat</button>
+    </div>
+
+    <div style="position:absolute;left:0;right:0;bottom:0;height:44%;background:linear-gradient(to top, rgba(5,8,15,.94) 0%, rgba(5,8,15,.78) 38%, rgba(5,8,15,.34) 70%, rgba(5,8,15,0) 100%)"></div>
+    <div style="position:absolute;top:0;left:0;right:0;height:20%;background:linear-gradient(to bottom, rgba(5,8,15,.72), rgba(5,8,15,0))"></div>
+
+    <div ref="{{ heroRef }}" style="position:absolute;left:0;right:0;bottom:0;padding:0 34px 44px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px">
+      <h1 style="margin:0;font-family:'Cormorant Garamond',serif;font-weight:300;font-size:clamp(34px,6vw,66px);line-height:1.04;letter-spacing:.01em;color:#F7F3EA;text-shadow:0 2px 40px rgba(0,0,0,.8)">Forgasd a Földet.</h1>
+      <p style="margin:0;max-width:34ch;font-size:13.5px;font-weight:300;letter-spacing:.06em;line-height:1.7;color:rgba(242,238,230,.72);text-wrap:pretty">Válaszd ki a következő úti célod. Tizenkét hely, ahová idén elvisszük.</p>
+      <div style="margin-top:6px;font-size:9.5px;letter-spacing:.3em;text-transform:uppercase;color:rgba(224,179,86,.92)">Húzd a gömböt · koppints egy fénypontra</div>
+    </div>
+  </div>
+
+  <div ref="{{ panelRef }}" class="mrd-scroll" style="position:absolute;z-index:30;background:rgba(9,15,27,.86);backdrop-filter:blur(26px);-webkit-backdrop-filter:blur(26px);overflow-y:auto;overscroll-behavior:contain;transform:translateX(106%);transition:transform .78s cubic-bezier(.22,.61,.36,1);box-shadow:-30px 0 90px rgba(0,0,0,.55)">
+    <button type="button" onClick="{{ closePanel }}" aria-label="Bezárás" style="position:sticky;top:0;float:right;z-index:3;margin:18px 18px 0 0;width:38px;height:38px;background:rgba(9,15,27,.7);border:1px solid rgba(201,162,39,.35);color:#F2EEE6;font-size:15px;line-height:1;cursor:pointer;backdrop-filter:blur(8px)" style-hover="background:rgba(201,162,39,.2)">✕</button>
+
+    <div ref="{{ bodyRef }}" style="padding:44px 40px 56px;transition:opacity .22s ease">
+      <div style="font-size:9.5px;letter-spacing:.34em;text-transform:uppercase;color:rgba(224,179,86,.85)">{{ sel.region }}</div>
+      <h2 style="margin:14px 0 0;font-family:'Cormorant Garamond',serif;font-weight:300;font-size:clamp(34px,4.4vw,50px);line-height:1.05;color:#F7F3EA">{{ sel.name }}</h2>
+      <p style="margin:16px 0 0;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:19px;line-height:1.55;color:rgba(224,179,86,.92);text-wrap:pretty">{{ sel.short }}</p>
+
+      <div ref="{{ galleriesRef }}" style="margin:30px 0 0">
+        <sc-for list="{{ dests }}" as="d" hint-placeholder-count="1">
+          <div data-gal-wrap="{{ d.id }}" style="display:none">
+            <div style="position:relative">
+              <div data-gal="{{ d.id }}" class="mrd-gal" style="display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px">
+                <sc-for list="{{ d.images }}" as="im" hint-placeholder-count="3">
+                  <div onClick="{{ openLightbox }}" data-lb-src="{{ im.src }}" data-lb-credit="{{ im.credit }}" data-lb-credit-href="{{ im.creditHref }}" style="flex:0 0 74%;aspect-ratio:4/3;scroll-snap-align:start;border:1px solid rgba(201,162,39,.22);cursor:zoom-in">
+                    <image-slot id="{{ im.id }}" shape="rect" placeholder="{{ im.label }}" src="{{ im.src }}" credit="{{ im.credit }}" credit-href="{{ im.creditHref }}"></image-slot>
+                  </div>
+                </sc-for>
+              </div>
+              <button type="button" data-gal-id="{{ d.id }}" data-gal-dir="-1" onClick="{{ onGalNav }}" aria-label="Előző kép" style="position:absolute;left:6px;top:50%;margin-top:-16px;width:32px;height:32px;border-radius:50%;background:rgba(9,15,27,.72);border:1px solid rgba(201,162,39,.4);color:#F2EEE6;display:flex;align-items:center;justify-content:center;font-size:15px;line-height:1;cursor:pointer;backdrop-filter:blur(6px);z-index:2" style-hover="background:rgba(201,162,39,.28)">‹</button>
+              <button type="button" data-gal-id="{{ d.id }}" data-gal-dir="1" onClick="{{ onGalNav }}" aria-label="Következő kép" style="position:absolute;right:6px;top:50%;margin-top:-16px;width:32px;height:32px;border-radius:50%;background:rgba(9,15,27,.72);border:1px solid rgba(201,162,39,.4);color:#F2EEE6;display:flex;align-items:center;justify-content:center;font-size:15px;line-height:1;cursor:pointer;backdrop-filter:blur(6px);z-index:2" style-hover="background:rgba(201,162,39,.28)">›</button>
+            </div>
+            <div data-gal-dots="{{ d.id }}" style="display:flex;justify-content:center;gap:6px;margin:11px 0 0">
+              <sc-for list="{{ d.images }}" as="im" hint-placeholder-count="3">
+                <button type="button" data-gal-id="{{ d.id }}" data-dot-idx="{{ $index }}" onClick="{{ onGalDot }}" aria-label="Kép ugrás" style="width:6px;height:6px;padding:0;border-radius:50%;border:0;background:rgba(242,238,230,.28);cursor:pointer"></button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <p style="margin:28px 0 0;font-size:13.5px;font-weight:300;line-height:1.85;color:rgba(242,238,230,.8);text-wrap:pretty">{{ sel.long }}</p>
+
+      <div style="margin:32px 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:rgba(201,162,39,.2)">
+        <div style="background:#0B1220;padding:18px 16px">
+          <div style="font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:rgba(242,238,230,.45)">Időtartam</div>
+          <div style="margin-top:9px;font-size:14px;font-weight:400;color:#F2EEE6">{{ sel.duration }}</div>
+        </div>
+        <div style="background:#0B1220;padding:18px 16px">
+          <div style="font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:rgba(242,238,230,.45)">Csoportméret</div>
+          <div style="margin-top:9px;font-size:14px;font-weight:400;color:#F2EEE6">{{ sel.group }}</div>
+        </div>
+      </div>
+
+      <div style="margin:30px 0 0">
+        <div style="font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:rgba(242,238,230,.45)">Kiemelt programok</div>
+        <ul style="margin:16px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:13px">
+          <sc-for list="{{ selPrograms }}" as="p" hint-placeholder-count="4">
+            <li style="display:flex;gap:13px;align-items:flex-start;font-size:13px;font-weight:300;line-height:1.6;color:rgba(242,238,230,.85)">
+              <span style="flex:0 0 5px;width:5px;height:5px;margin-top:7px;background:#C9A227;border-radius:50%"></span>
+              <span style="text-wrap:pretty">{{ p }}</span>
+            </li>
+          </sc-for>
+        </ul>
+      </div>
+
+      <div style="margin:30px 0 0;padding:18px 0 0;border-top:1px solid rgba(242,238,230,.12)">
+        <div style="font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:rgba(242,238,230,.45)">Az ár tartalmazza</div>
+        <p style="margin:12px 0 0;font-size:12.5px;font-weight:300;line-height:1.75;color:rgba(242,238,230,.7)">{{ sel.includes }}</p>
+      </div>
+
+      <div style="margin:34px 0 0;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:20px;padding-top:24px;border-top:1px solid rgba(201,162,39,.3)">
+        <div>
+          <div style="font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:rgba(242,238,230,.45)">Ártól / fő</div>
+          <div style="margin-top:8px;font-family:'Cormorant Garamond',serif;font-size:34px;line-height:1;color:#E0B356">{{ sel.price }}</div>
+        </div>
+        <button type="button" onClick="{{ openOffer }}" style="background:#C9A227;border:0;color:#0B1220;padding:15px 26px;font-family:Manrope,sans-serif;font-weight:600;font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;cursor:pointer" style-hover="background:#E0B356">Ajánlatot kérek</button>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{ formOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ onScrimClick }}" style="position:absolute;inset:0;z-index:60;background:rgba(4,7,13,.72);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px;overflow-y:auto">
+      <div data-card onClick="{{ stop }}" class="mrd-scroll" style="width:100%;max-width:460px;max-height:86vh;overflow-y:auto;background:rgba(11,18,32,.97);border:1px solid rgba(201,162,39,.4);padding:40px 36px">
+        <sc-if value="{{ sent }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center;padding:24px 0">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:34px;color:#E0B356">Köszönjük.</div>
+            <p style="margin:16px 0 0;font-size:13px;font-weight:300;line-height:1.8;color:rgba(242,238,230,.78)">Kérését megkaptuk. Utazási tanácsadónk 24 órán belül személyes ajánlattal keresi.</p>
+            <button type="button" onClick="{{ closeForm }}" style="margin-top:28px;background:none;border:1px solid rgba(201,162,39,.45);color:#F2EEE6;padding:13px 24px;font-family:Manrope,sans-serif;font-size:10px;letter-spacing:.26em;text-transform:uppercase;cursor:pointer" style-hover="background:rgba(201,162,39,.16)">Vissza a Földgömbhöz</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ notSent }}" hint-placeholder-val="{{ true }}">
+          <div>
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
+              <div>
+                <div style="font-size:9px;letter-spacing:.32em;text-transform:uppercase;color:rgba(224,179,86,.85)">Ajánlatkérés</div>
+                <h3 style="margin:12px 0 0;font-family:'Cormorant Garamond',serif;font-weight:300;font-size:32px;line-height:1.1;color:#F7F3EA">{{ formTitle }}</h3>
+              </div>
+              <button type="button" onClick="{{ closeForm }}" aria-label="Bezárás" style="flex:0 0 auto;width:34px;height:34px;background:none;border:1px solid rgba(242,238,230,.2);color:#F2EEE6;font-size:14px;cursor:pointer" style-hover="border-color:rgba(224,179,86,.7)">✕</button>
+            </div>
+            <div style="margin:28px 0 0;display:flex;flex-direction:column;gap:16px">
+              <label style="display:flex;flex-direction:column;gap:8px">
+                <span style="font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:rgba(242,238,230,.5)">Név</span>
+                <input type="text" value="{{ fName }}" onChange="{{ setName }}" placeholder="Kovács Anna" style="background:rgba(242,238,230,.05);border:0;border-bottom:1px solid rgba(242,238,230,.22);color:#F2EEE6;font-family:Manrope,sans-serif;font-size:14px;padding:11px 12px;outline:none" style-focus="border-bottom-color:#C9A227" />
+              </label>
+              <label style="display:flex;flex-direction:column;gap:8px">
+                <span style="font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:rgba(242,238,230,.5)">E-mail</span>
+                <input type="email" value="{{ fEmail }}" onChange="{{ setEmail }}" placeholder="anna@example.hu" style="background:rgba(242,238,230,.05);border:0;border-bottom:1px solid rgba(242,238,230,.22);color:#F2EEE6;font-family:Manrope,sans-serif;font-size:14px;padding:11px 12px;outline:none" style-focus="border-bottom-color:#C9A227" />
+              </label>
+              <label style="display:flex;flex-direction:column;gap:8px">
+                <span style="font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:rgba(242,238,230,.5)">Telefon</span>
+                <input type="tel" value="{{ fPhone }}" onChange="{{ setPhone }}" placeholder="+36 30 123 4567" style="background:rgba(242,238,230,.05);border:0;border-bottom:1px solid rgba(242,238,230,.22);color:#F2EEE6;font-family:Manrope,sans-serif;font-size:14px;padding:11px 12px;outline:none" style-focus="border-bottom-color:#C9A227" />
+              </label>
+              <label style="display:flex;flex-direction:column;gap:8px">
+                <span style="font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:rgba(242,238,230,.5)">Üzenet</span>
+                <textarea rows="3" value="{{ fMsg }}" onChange="{{ setMsg }}" placeholder="Utazás tervezett időpontja, létszám, kérések…" style="background:rgba(242,238,230,.05);border:0;border-bottom:1px solid rgba(242,238,230,.22);color:#F2EEE6;font-family:Manrope,sans-serif;font-size:14px;padding:11px 12px;outline:none;resize:vertical" style-focus="border-bottom-color:#C9A227"></textarea>
+              </label>
+            </div>
+            <button type="button" onClick="{{ submitForm }}" style="margin-top:28px;width:100%;background:#C9A227;border:0;color:#0B1220;padding:16px;font-family:Manrope,sans-serif;font-weight:600;font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;cursor:pointer" style-hover="background:#E0B356">Elküldöm</button>
+            <p style="margin:16px 0 0;font-size:10.5px;font-weight:300;line-height:1.7;color:rgba(242,238,230,.42)">A MERIDIAN fiktív bemutató iroda. Az űrlap demonstrációs célú, adatot nem küldünk el.</p>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ lightboxOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeLightbox }}" style="position:absolute;inset:0;z-index:90;background:rgba(4,7,13,.94);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:36px;cursor:zoom-out">
+      <img src="{{ lightboxSrc }}" onClick="{{ stop }}" style="max-width:92vw;max-height:84vh;width:auto;height:auto;object-fit:contain;box-shadow:0 30px 100px rgba(0,0,0,.65);border:1px solid rgba(201,162,39,.3);cursor:auto" />
+      <button type="button" onClick="{{ closeLightbox }}" aria-label="Bezárás" style="position:absolute;top:22px;right:26px;width:38px;height:38px;background:rgba(9,15,27,.72);border:1px solid rgba(201,162,39,.4);color:#F2EEE6;font-size:15px;line-height:1;cursor:pointer;backdrop-filter:blur(8px)" style-hover="background:rgba(201,162,39,.24)">✕</button>
+      <div onClick="{{ stop }}" style="position:absolute;left:26px;bottom:20px;font-size:10px;letter-spacing:.03em;color:rgba(242,238,230,.55)">{{ lightboxCredit }}</div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ fallback }}" hint-placeholder-val="{{ false }}">
+    <div class="mrd-scroll" style="position:absolute;inset:0;z-index:70;background:#0B1220;overflow-y:auto;padding:56px 32px 72px">
+      <div style="max-width:1080px;margin:0 auto">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:22px;letter-spacing:.5em">MERIDIAN</div>
+        <h2 style="margin:26px 0 0;font-family:'Cormorant Garamond',serif;font-weight:300;font-size:clamp(30px,5vw,52px);line-height:1.1;color:#F7F3EA">Tizenkét úti cél, egyszerű nézetben</h2>
+        <p style="margin:14px 0 0;max-width:46ch;font-size:13.5px;font-weight:300;line-height:1.8;color:rgba(242,238,230,.7)">Az eszközén nem érhető el a 3D megjelenítés, ezért a földgömb helyett kártyás nézetet mutatunk.</p>
+        <div style="margin:40px 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1px;background:rgba(201,162,39,.22)">
+          <sc-for list="{{ dests }}" as="d" hint-placeholder-count="12">
+            <div style="background:#0B1220;padding:28px 24px 30px;display:flex;flex-direction:column;gap:12px">
+              <div style="font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:rgba(224,179,86,.8)">{{ d.region }}</div>
+              <div style="font-family:'Cormorant Garamond',serif;font-size:30px;line-height:1.1;color:#F7F3EA">{{ d.name }}</div>
+              <div style="font-size:12.5px;font-weight:300;line-height:1.7;color:rgba(242,238,230,.72);text-wrap:pretty">{{ d.short }}</div>
+              <div style="margin-top:auto;padding-top:16px;font-family:'Cormorant Garamond',serif;font-size:22px;color:#E0B356">{{ d.price }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <div ref="{{ introRef }}" style="position:absolute;inset:0;z-index:50;pointer-events:none;overflow:hidden">
+    <div ref="{{ cloudTopRef }}" style="position:absolute;left:-14%;right:-14%;top:26%;height:26%;background:radial-gradient(60% 100% at 30% 60%, rgba(200,214,238,.5), rgba(200,214,238,0) 70%),radial-gradient(52% 100% at 72% 40%, rgba(224,179,86,.22), rgba(224,179,86,0) 70%);filter:blur(26px)"></div>
+    <div ref="{{ cloudMidRef }}" style="position:absolute;left:-18%;right:-18%;top:52%;height:30%;background:radial-gradient(55% 100% at 60% 50%, rgba(176,193,222,.55), rgba(176,193,222,0) 72%),radial-gradient(45% 100% at 20% 55%, rgba(242,238,230,.34), rgba(242,238,230,0) 70%);filter:blur(30px)"></div>
+    <div ref="{{ cloudLowRef }}" style="position:absolute;left:-20%;right:-20%;top:78%;height:34%;background:radial-gradient(60% 100% at 45% 40%, rgba(148,166,198,.6), rgba(148,166,198,0) 74%);filter:blur(34px)"></div>
+    <div ref="{{ planeRef }}" style="position:absolute;left:50%;top:50%;width:120px;margin:-60px 0 0 -60px;opacity:0">
+      <svg viewBox="0 0 120 120" width="120" height="120" fill="none" aria-hidden="true">
+        <path d="M60 8 C65.5 19 68.5 32 69.4 46.2 L104 68.5 L104 79 L69.6 68.8 C69.3 78 68.4 86.4 66.9 94.2 L78 103.5 L78 111 L60 105 L42 111 L42 103.5 L53.1 94.2 C51.6 86.4 50.7 78 50.4 68.8 L16 79 L16 68.5 L50.6 46.2 C51.5 32 54.5 19 60 8 Z" fill="#0B1220" stroke="rgba(224,179,86,.85)" stroke-width="1.4" />
+      </svg>
+    </div>
+    <button type="button" ref="{{ skipRef }}" onClick="{{ skipIntro }}" style="position:absolute;right:30px;bottom:28px;pointer-events:auto;background:none;border:1px solid rgba(242,238,230,.2);color:rgba(242,238,230,.7);padding:10px 18px;font-family:Manrope,sans-serif;font-size:9.5px;letter-spacing:.28em;text-transform:uppercase;cursor:pointer" style-hover="border-color:rgba(224,179,86,.7);color:#F2EEE6">Ugrás</button>
+  </div>
+
+  <button type="button" onClick="{{ toggleCredits }}" aria-label="Forrás- és jogi információk" style="position:absolute;left:14px;bottom:14px;z-index:6;pointer-events:auto;width:19px;height:19px;border-radius:50%;background:rgba(9,15,27,.5);border:1px solid rgba(242,238,230,.2);color:rgba(242,238,230,.5);font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(4px)" style-hover="border-color:rgba(224,179,86,.65);color:#F2EEE6">i</button>
+
+  <sc-if value="{{ creditsOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ toggleCredits }}" style="position:absolute;inset:0;z-index:5"></div>
+    <div onClick="{{ stop }}" style="position:absolute;left:14px;bottom:40px;z-index:6;pointer-events:auto;background:rgba(9,15,27,.88);backdrop-filter:blur(10px);border:1px solid rgba(201,162,39,.28);padding:11px 13px;font-size:9px;letter-spacing:.02em;line-height:1.8;color:rgba(242,238,230,.6);max-width:240px;box-shadow:0 18px 50px rgba(0,0,0,.4)">
+      <div>Photo by <a href="https://unsplash.com/@rithay?utm_source=meridian&utm_medium=referral" target="_blank" rel="noopener" style="color:rgba(242,238,230,.75)">Ritz</a> on <a href="https://unsplash.com?utm_source=meridian&utm_medium=referral" target="_blank" rel="noopener" style="color:rgba(242,238,230,.75)">Unsplash</a></div>
+      <div>Earth textures © <a href="https://www.solarsystemscope.com/textures/" target="_blank" rel="noopener" style="color:rgba(242,238,230,.75)">Solar System Scope</a> (CC BY 4.0)</div>
+    </div>
+  </sc-if>
+
+  <div ref="{{ loaderRef }}" style="position:absolute;inset:0;z-index:80;background:#080D18;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:20px;letter-spacing:.52em;color:#F2EEE6">MERIDIAN</div>
+    <div style="position:relative;width:120px;height:1px;background:rgba(242,238,230,.14);overflow:hidden">
+      <div style="position:absolute;inset:0;width:32%;background:linear-gradient(90deg,rgba(201,162,39,0),#E0B356,rgba(201,162,39,0));animation:mrd-load 1.5s ease-in-out infinite"></div>
+    </div>
+    <div style="font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:rgba(242,238,230,.4)">A Föld betöltése</div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;autoRotate&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Földgömb&quot;},&quot;playIntro&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Élmény&quot;}}">
+class Component extends DCLogic {
+
+  /* ============================================================
+     ÚTI CÉLOK — EZ AZ EGYETLEN ADATFORRÁS.
+     Új úti cél felvétele: adj hozzá EGY objektumot ehhez a tömbhöz.
+     A markerek, a panel, a galéria és a fallback-nézet mind ebből épül,
+     semmilyen további kódmódosítás nem szükséges.
+     Kötelező mezők:
+       id       – egyedi azonosító (a galéria kép-slotokhoz is ezt használjuk)
+       name     – megjelenő név
+       region   – kis felirat a név fölött (ország / régió)
+       lat, lng – valós földrajzi koordináta (fok)
+       short    – egy soros, csábító mondat
+       long     – hosszabb leírás (2-3 mondat)
+       duration – időtartam
+       group    – csoportméret
+       programs – kiemelt programok listája (string tömb)
+       includes – mit tartalmaz az ár
+       price    – "ártól" ár, forintban, kész stringként
+       images   – 2-3 kép: { id, label } (a slotokba a felhasználó tölt fotót)
+     A rendszer 15-20 elemet is elbír: a címkék automatikusan elrejtőznek,
+     ha átfednének, és a gömb túloldalán lévő pontok elhalványulnak.
+     ============================================================ */
+  static DESTINATIONS = [
+    {
+      id: 'bali', name: 'Bali', region: 'Indonézia · Kis-Szunda-szigetek',
+      lat: -8.41, lng: 115.19,
+      short: 'Rizsteraszok, templomi füstölő és a Csendes-óceán párája.',
+      long: 'Bali nem egy strand, hanem egy ritmus: hajnalban szertartás, délben smaragdzöld teraszok, este halászfalu a homokon. Utunk Ubud hegyvidéki csendjéből indul, és Jimbaran partján zárul, a helyi kísérőink otthonaiban tett látogatásokkal.',
+      duration: '11 nap / 10 éjszaka', group: 'Max. 12 fő',
+      programs: [
+        'Napkelte az Agung vulkán gerincén, helyi hegyi vezetővel',
+        'Privát purifikációs szertartás Tirta Empul szent vizeinél',
+        'Rizsterasz-túra ubudi agronómus kíséretében',
+        'Vacsora egy jimbarani halászcsalád partmenti asztalánál'
+      ],
+      includes: 'Menetrend szerinti repülőjegy, 5* és butikszállás, magyar nyelvű kísérő, minden transzfer, 6 vacsora, belépők.',
+      price: '1 190 000 Ft',
+      images: [
+        { id: 'bali-1', label: 'Rizsteraszok, Ubud', src: 'https://images.unsplash.com/photo-1557093793-d149a38a1be8?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Radoslav Bali on Unsplash', creditHref: 'https://unsplash.com/@radoslavbali' },
+        { id: 'bali-2', label: 'Templomi szertartás', src: 'https://images.unsplash.com/photo-1745739201854-cd9c1fb1379b?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Catherine Zaidova on Unsplash', creditHref: 'https://unsplash.com/@k_zaidova' },
+        { id: 'bali-3', label: 'Jimbarani part', src: 'https://images.unsplash.com/photo-1756312091218-17682154b8d6?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by rishi on Unsplash', creditHref: 'https://unsplash.com/@beingabstrac' }
+      ]
+    },
+    {
+      id: 'maldives', name: 'Maldív-szigetek', region: 'Indiai-óceán · Baa-atoll',
+      lat: 3.2, lng: 73.22,
+      short: 'Kilenc árnyalatú türkiz, és semmi más a horizonton.',
+      long: 'A Baa-atoll a Maldívok legcsendesebb szeglete: bioszféra-rezervátum, ahol a mantasugarak vonulási útvonala a szálláshelytől néhány perc hajóútra van. Vízi bungaló, két búvármerülés naponta, és egy homokzátony, amit egy délutánra kizárólag ön használ.',
+      duration: '8 nap / 7 éjszaka', group: 'Max. 8 fő',
+      programs: [
+        'Négy éjszaka vízi bungalóban, közvetlen lagúna-lejárattal',
+        'Éjszakai merülés a mantasugarak vonulási útvonalán',
+        'Homokzátony-piknik kizárólagos használattal',
+        'Csillagvacsora egy hagyományos dhoni fedélzetén'
+      ],
+      includes: 'Repülőjegy, hidroplán-transzfer, félpanzió, két vezetett merülés, snorkeling-felszerelés, magyar nyelvű koordinátor.',
+      price: '1 690 000 Ft',
+      images: [
+        { id: 'mld-1', label: 'Vízi bungaló', src: 'https://images.unsplash.com/photo-1590523277543-a94d2e4eb00b?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Mike Swigunski on Unsplash', creditHref: 'https://unsplash.com/@mike_swigunski' },
+        { id: 'mld-2', label: 'Lagúna felülről', src: 'https://images.unsplash.com/photo-1696580436068-f19c26850e8b?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Hoodh Ahmed on Unsplash', creditHref: 'https://unsplash.com/@zshmo' },
+        { id: 'mld-3', label: 'Dhoni naplementében', src: 'https://images.unsplash.com/photo-1622006839586-3e2542f0fbac?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Muhammadh Saamy on Unsplash', creditHref: 'https://unsplash.com/@piiiiine' }
+      ]
+    },
+    {
+      id: 'japan', name: 'Japán', region: 'Kelet-Ázsia · Kanszai és Kantó',
+      lat: 35.01, lng: 135.77,
+      short: 'Kiotó csendje, Tokió ritmusa, és a köztük futó vasút.',
+      long: 'Két hét alatt átvezetjük a japán léptékváltáson: templomkertek reggeli söprögetése, majd Tokió tizenkét emeletes utcái. A szállásaink között van 400 éves kiotói machiya és egy hakonei onszen-fogadó, ahonnan tiszta időben látszik a Fudzsi.',
+      duration: '13 nap / 12 éjszaka', group: 'Max. 14 fő',
+      programs: [
+        'Teaszertartás egy 400 éves kiotói machiyában',
+        'Hajnali séta a Fushimi Inari torii-kapui között, nyitás előtt',
+        'Kaiseki vacsora két Michelin-csillagos konyhán',
+        'Shinkansen-átkelés a Japán-Alpokon',
+        'Onszen-éjszaka Hakonéban, kilátással a Fudzsira'
+      ],
+      includes: 'Repülőjegy, 12 éjszaka szállás reggelivel, JR Pass, 3 kiemelt vacsora, magyar nyelvű kísérő, belépők.',
+      price: '1 450 000 Ft',
+      images: [
+        { id: 'jpn-1', label: 'Torii-kapuk, Fushimi', src: 'https://images.unsplash.com/photo-1764418365982-742441557a6c?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Sarmat Batagov on Unsplash', creditHref: 'https://unsplash.com/@batag_' },
+        { id: 'jpn-2', label: 'Machiya belső kert', src: 'https://images.unsplash.com/photo-1774293378333-f8e1fea0ddc4?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Andy Arbeit on Unsplash', creditHref: 'https://unsplash.com/@izeberg' },
+        { id: 'jpn-3', label: 'Tokió éjszaka', src: 'https://images.unsplash.com/photo-1780631347040-0c5df6053c2f?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Jezael Melgoza on Unsplash', creditHref: 'https://unsplash.com/@jezar' }
+      ]
+    },
+    {
+      id: 'peru', name: 'Peru', region: 'Dél-Amerika · Andok és Szent Völgy',
+      lat: -13.53, lng: -71.97,
+      short: 'Az Andok pereme, ahol a köd elhúzódik a kőfalak elől.',
+      long: 'Cuscóból indulunk, a Szent Völgyön át emelkedünk Machu Picchuig, majd a Titicaca-tó szigetein töltünk két éjszakát helyi családoknál. A magasságot fokozatosan szokjuk: az útvonal akklimatizációra van tervezve, nem menetrendre.',
+      duration: '12 nap / 11 éjszaka', group: 'Max. 12 fő',
+      programs: [
+        'Machu Picchu napkeltekor, az első vonatok előtt',
+        'Maras sópárkányai és Moray kör alakú teraszai',
+        'Éjszaka egy taquilei szövőcsaládnál a Titicacán',
+        'Cuscói gasztroséta andoki alapanyagokkal'
+      ],
+      includes: 'Repülőjegy, belföldi járatok, 11 éjszaka szállás, vonatjegy Aguas Calientesig, belépők, magyar nyelvű kísérő.',
+      price: '1 320 000 Ft',
+      images: [
+        { id: 'per-1', label: 'Machu Picchu hajnalban', src: 'https://images.unsplash.com/photo-1574333360968-50e1fc6035b8?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Jean Estrella on Unsplash', creditHref: 'https://unsplash.com/@jeanestrella' },
+        { id: 'per-2', label: 'Szent Völgy', src: 'https://images.unsplash.com/photo-1568729670692-0d2de9a3c027?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Paul Daly on Unsplash', creditHref: 'https://unsplash.com/@daly85' },
+        { id: 'per-3', label: 'Titicaca-tó', src: 'https://images.unsplash.com/photo-1553550765-41e7dff2bd41?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Jeison Higuita on Unsplash', creditHref: 'https://unsplash.com/@jeison' }
+      ]
+    },
+    {
+      id: 'iceland', name: 'Izland', region: 'Észak-Atlanti-óceán · Déli part',
+      lat: 64.15, lng: -21.94,
+      short: 'Bazalt, gőz és a sarki fény, ami nem kér engedélyt.',
+      long: 'Kilenc nap a déli parton és a Vatnajökull körül, a sarki fény szezonjának közepén. Kis csoport, két terepjáró, asztrofotós kísérő, és annyi szabadon hagyott este, amennyi az időjáráshoz kell — az égboltot nem lehet menetrendbe tenni.',
+      duration: '9 nap / 8 éjszaka', group: 'Max. 10 fő',
+      programs: [
+        'Sarki fény vadászat asztrofotós kísérővel',
+        'Gleccserbarlang a Vatnajökull jégtakarója alatt',
+        'Jégtömbök a Jökulsárlón lagúnában és a Fekete-parton',
+        'Geotermál fürdő a Fjaðrárgljúfur kanyon közelében',
+        'Reykjavíki design- és étteremkörút'
+      ],
+      includes: 'Repülőjegy, 8 éjszaka szállás reggelivel, terepjárós közlekedés, gleccsertúra felszereléssel, magyar nyelvű kísérő.',
+      price: '890 000 Ft',
+      images: [
+        { id: 'isl-1', label: 'Sarki fény', src: 'https://images.unsplash.com/photo-1759675739458-6e5a4a60a117?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Jonny Gios on Unsplash', creditHref: 'https://unsplash.com/@supergios' },
+        { id: 'isl-2', label: 'Jökulsárlón', src: 'https://images.unsplash.com/photo-1537255439072-8b7f411e6212?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Denys Nevozhai on Unsplash', creditHref: 'https://unsplash.com/@dnevozhai' },
+        { id: 'isl-3', label: 'Fekete homokos part', src: 'https://images.unsplash.com/photo-1741660420528-fb38970b3f7f?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Owen Roth on Unsplash', creditHref: 'https://unsplash.com/@owenroth_v1' }
+      ]
+    },
+    {
+      id: 'morocco', name: 'Marokkó', region: 'Észak-Afrika · Marrákes és a Szahara',
+      lat: 31.63, lng: -7.99,
+      short: 'Fűszerillatú souk, vörös homok és a sivatag csendje éjszaka.',
+      long: 'Marrákes labirintusszerű medinájából indulunk a Magas-Atlaszon át a Szahara dűnéiig. Berber falvak, tevekaraván napnyugtakor, és egy éjszaka sátorban, ahol a csillagképek pontosabbak, mint bármelyik térkép.',
+      duration: '9 nap / 8 éjszaka', group: 'Max. 12 fő',
+      programs: [
+        'Alkudozás a marrákesi fűszerpiacon helyi vezetővel',
+        'Tevekaraván napnyugtakor a Szahara dűnéi között',
+        'Éjszaka berber sátortáborban, csillagnézéssel',
+        'Túra a Magas-Atlasz berber falvaiban',
+        'Hagyományos tagine-vacsora egy riad tetőteraszán'
+      ],
+      includes: 'Repülőjegy, riad és sivatagi sátorszállás, 4x4 terepjárós transzfer, magyar nyelvű kísérő, félpanzió.',
+      price: '990 000 Ft',
+      images: [
+        { id: 'mar-1', label: 'Marrákesi medina', src: 'https://images.unsplash.com/photo-1761255240953-c571ba0b98d7?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Bernd Dittrich on Unsplash', creditHref: 'https://unsplash.com/@hdbernd' },
+        { id: 'mar-2', label: 'Szahara dűnéi', src: 'https://images.unsplash.com/photo-1750859876327-f9360664c362?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Alexander Psiuk on Unsplash', creditHref: 'https://unsplash.com/@alexdeloy' },
+        { id: 'mar-3', label: 'Berber sátortábor éjszaka', src: 'https://images.unsplash.com/photo-1667143297634-31c6c5f70381?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by sander traa on Unsplash', creditHref: 'https://unsplash.com/@sandertraa' }
+      ]
+    },
+    {
+      id: 'norway', name: 'Norvégia', region: 'Skandinávia · Nyugati fjordvidék',
+      lat: 62.10, lng: 7.21,
+      short: 'Függőleges sziklafalak, vízesések és a fjord tükörsima csendje.',
+      long: 'Bergenből indulva hajózzuk be a Geiranger- és Nærøyfjordot, ahol a hegyek egyenesen a tengerből emelkednek ki. Kisebb hajó, panorámás vasút a felföldön, és annyi séta, amennyi a norvég csendhez kell.',
+      duration: '8 nap / 7 éjszaka', group: 'Max. 10 fő',
+      programs: [
+        'Hajózás a Geirangerfjordon a Hét Nővér vízesés alatt',
+        'Panorámavasút a Flåm-vasúton a felföldi fennsíkig',
+        'Kirándulás a Trolltunga sziklaperemhez',
+        'Éjszaka egy fjord-parti favázas fogadóban'
+      ],
+      includes: 'Repülőjegy, fjordhajózás, panorámavasút-jegy, 7 éjszaka szállás reggelivel, magyar nyelvű kísérő.',
+      price: '1 090 000 Ft',
+      images: [
+        { id: 'nor-1', label: 'Geirangerfjord', src: 'https://images.unsplash.com/photo-1631893802294-e7d57673759f?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Georg Eiermann on Unsplash', creditHref: 'https://unsplash.com/@georgeiermann' },
+        { id: 'nor-2', label: 'Trolltunga', src: 'https://images.unsplash.com/photo-1505312917212-9db5bde78aff?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Dong Zhang on Unsplash', creditHref: 'https://unsplash.com/@perfumekiller' },
+        { id: 'nor-3', label: 'Flåm-vasút', src: 'https://images.unsplash.com/photo-1726233687898-f75c77b861d6?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Katja Ano on Unsplash', creditHref: 'https://unsplash.com/@katjaano' }
+      ]
+    },
+    {
+      id: 'greece', name: 'Görögország', region: 'Égei-tenger · Kikládok, Santorini',
+      lat: 36.39, lng: 25.46,
+      short: 'Fehér falak, kék kupolák és a naplemente Oiánál.',
+      long: 'Santorini kaldera-pereméről nézzük végig az Égei-tenger naplementéit, majd Naxos és Milos csendesebb partjain folytatjuk. Bortúra a vulkanikus teraszokon, és annyi tengerparti délután, amennyi egy görög nyárhoz kell.',
+      duration: '9 nap / 8 éjszaka', group: 'Max. 12 fő',
+      programs: [
+        'Naplemente Oia várfalánál, helyi borkóstolóval',
+        'Vitorlás kirándulás a santorinii kalderában',
+        'Bortúra vulkanikus teraszos szőlőkben',
+        'Csónakázás Milos rejtett öbleiben'
+      ],
+      includes: 'Repülőjegy, komp- és vitorlástúrák, 8 éjszaka szállás reggelivel, magyar nyelvű kísérő.',
+      price: '870 000 Ft',
+      images: [
+        { id: 'gre-1', label: 'Oia naplementében', src: 'https://images.unsplash.com/photo-1530841377377-3ff06c0ca713?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Jonathan Gallegos on Unsplash', creditHref: 'https://unsplash.com/@jonathangallegos' },
+        { id: 'gre-2', label: 'Santorini kaldera', src: 'https://images.unsplash.com/photo-1696519669474-3001c0e2b548?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Dawid Tkocz on Unsplash', creditHref: 'https://unsplash.com/@dawidtkocz' },
+        { id: 'gre-3', label: 'Kék kupolás templomok', src: 'https://images.unsplash.com/photo-1560703649-e3055f28bcf8?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Matthew Waring on Unsplash', creditHref: 'https://unsplash.com/@matthewwaring' }
+      ]
+    },
+    {
+      id: 'safrica', name: 'Dél-Afrika', region: 'Afrika · Fokváros és Krüger Nemzeti Park',
+      lat: -33.92, lng: 18.42,
+      short: 'Asztal-hegy, oroszlánbőgés hajnalban és a Jóreménység foka.',
+      long: 'Fokváros óvárosa és az Asztal-hegy után szafarira indulunk a Krüger Nemzeti Parkba, ahol hajnali és esti terepjárós túrákon keressük a nagy ötöst. Zárásként egy borvidéki nap Stellenboschban.',
+      duration: '11 nap / 10 éjszaka', group: 'Max. 10 fő',
+      programs: [
+        'Felvonó az Asztal-hegy tetejére, tiszta időben',
+        'Hajnali szafari a Krüger Nemzeti Parkban, a nagy ötös nyomában',
+        'Pingvinek megfigyelése Boulders Beachen',
+        'Borkóstoló Stellenbosch teraszos birtokain'
+      ],
+      includes: 'Repülőjegy, belföldi járat, szafari-lodge félpanzióval, terepjárós túrák, magyar nyelvű kísérő.',
+      price: '1 590 000 Ft',
+      images: [
+        { id: 'saf-1', label: 'Asztal-hegy', src: 'https://images.unsplash.com/photo-1744604030401-b24c5975a574?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Vimal Joseph on Unsplash', creditHref: 'https://unsplash.com/@dr_vimaljv' },
+        { id: 'saf-2', label: 'Szafari a Krüger Parkban', src: 'https://images.unsplash.com/photo-1745526180300-443ef46e6a73?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Craig Stevenson on Unsplash', creditHref: 'https://unsplash.com/@globalxplorer' },
+        { id: 'saf-3', label: 'Stellenbosch szőlői', src: 'https://images.unsplash.com/photo-1781935047996-c34074ee9e81?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Omar on Unsplash', creditHref: 'https://unsplash.com/@ommyjay' }
+      ]
+    },
+    {
+      id: 'newzealand', name: 'Új-Zéland', region: 'Óceánia · Déli-sziget, Fiordland',
+      lat: -44.67, lng: 167.93,
+      short: 'Esőerdő, fjord és a világ végének csendje egy helyen.',
+      long: 'A Déli-sziget nyugati partján hajózunk be a Milford Soundba, majd Queenstown kalandsportjai és Wanaka hegyi tavai következnek. Az útvonal a régió leghíresebb filmes tájain vezet át, turistatömegek nélkül.',
+      duration: '13 nap / 12 éjszaka', group: 'Max. 10 fő',
+      programs: [
+        'Hajózás a Milford Soundban, vízesések és fókák között',
+        'Túra a Roy\'s Peak gerincén, kilátással Wanakára',
+        'Csónakázás a Queenstown-i Wakatipu-tavon',
+        'Esti csillagnézés a Mackenzie-medence sötét égbolt rezervátumában'
+      ],
+      includes: 'Repülőjegy, belföldi járatok, bérelt terepjáró, 12 éjszaka szállás, magyar nyelvű kísérő.',
+      price: '1 790 000 Ft',
+      images: [
+        { id: 'nzl-1', label: 'Milford Sound', src: 'https://images.unsplash.com/photo-1591640040362-f55d95a6b2bc?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Sébastien Goldberg on Unsplash', creditHref: 'https://unsplash.com/@sebastiengoldberg' },
+        { id: 'nzl-2', label: 'Hegyi túra, Roy\'s Peak', src: 'https://images.unsplash.com/photo-1633231610793-a5be285cb418?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Luca Calderone on Unsplash', creditHref: 'https://unsplash.com/@nature_photography_by_luca' },
+        { id: 'nzl-3', label: 'Wakatipu-tó, Queenstown', src: 'https://images.unsplash.com/photo-1765114944961-80ca800fff35?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Donald Wu on Unsplash', creditHref: 'https://unsplash.com/@donaldwuid' }
+      ]
+    },
+    {
+      id: 'vietnam', name: 'Vietnam', region: 'Délkelet-Ázsia · Ha Long-öböl és Hanoi',
+      lat: 20.91, lng: 107.18,
+      short: 'Mészkősziklák a ködben és dzsunkahajó az öböl csendjén.',
+      long: 'Hanoi óvárosának zajából indulunk a Ha Long-öböl ezernyi mészkőszigetéig, ahol egy éjszakát dzsunkahajó fedélzetén töltünk. Zárásként Sa Pa teraszos rizsföldjei és a helyi hegyi piacok.',
+      duration: '10 nap / 9 éjszaka', group: 'Max. 14 fő',
+      programs: [
+        'Éjszaka dzsunkahajó fedélzetén a Ha Long-öbölben',
+        'Kajakozás az öböl rejtett lagúnáiban',
+        'Hajnali piac Hanoi óvárosában, helyi vezetővel',
+        'Teraszos rizsföldek túrázása Sa Pa hegyei között'
+      ],
+      includes: 'Repülőjegy, belföldi vonat, dzsunkahajós szállás, 9 éjszaka szálloda reggelivel, magyar nyelvű kísérő.',
+      price: '1 190 000 Ft',
+      images: [
+        { id: 'vnm-1', label: 'Ha Long-öböl', src: 'https://images.unsplash.com/photo-1761127138372-cad230082b19?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Veronica Tironi on Unsplash', creditHref: 'https://unsplash.com/@veronicawonderland' },
+        { id: 'vnm-2', label: 'Dzsunkahajó', src: 'https://images.unsplash.com/photo-1643029891412-92f9a81a8c16?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Marina Lobato on Unsplash', creditHref: 'https://unsplash.com/@mlobatopl' },
+        { id: 'vnm-3', label: 'Sa Pa rizsteraszok', src: 'https://images.unsplash.com/photo-1758003293450-b9478f02bf48?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Huy Nguyen on Unsplash', creditHref: 'https://unsplash.com/@huynguyen_pch' }
+      ]
+    },
+    {
+      id: 'jordan', name: 'Jordánia', region: 'Közel-Kelet · Petra és a Wadi Rum sivatag',
+      lat: 30.33, lng: 35.44,
+      short: 'Rózsaszín sziklaváros és csillagos éjszaka a sivatagban.',
+      long: 'A Sziq szűk sziklafolyosóján át érkezünk Petrába, az ókori Kincsesház elé, majd a Wadi Rum vörös homokjában töltünk egy éjszakát beduin sátorban. Zárásként a Holt-tenger sótól fehér partja.',
+      duration: '8 nap / 7 éjszaka', group: 'Max. 12 fő',
+      programs: [
+        'Hajnali séta a Sziqen át a petrai Kincsesházig',
+        'Terepjárós túra a Wadi Rum vörös dűnéi között',
+        'Éjszaka beduin sátortáborban, csillagnézéssel',
+        'Fürdés és iszappakolás a Holt-tenger partján'
+      ],
+      includes: 'Repülőjegy, belépők Petrába, sivatagi sátorszállás, 7 éjszaka szállás reggelivel, magyar nyelvű kísérő.',
+      price: '950 000 Ft',
+      images: [
+        { id: 'jor-1', label: 'Petra Kincsesháza', src: 'https://images.unsplash.com/photo-1762255174130-4b9f04523fea?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Tommaso Ubezio on Unsplash', creditHref: 'https://unsplash.com/@tommasoubezio' },
+        { id: 'jor-2', label: 'Wadi Rum sivatag', src: 'https://images.unsplash.com/photo-1662747974578-5f0eeaee3a98?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by Dylan Shaw on Unsplash', creditHref: 'https://unsplash.com/@dylanshaw' },
+        { id: 'jor-3', label: 'Holt-tenger', src: 'https://images.unsplash.com/photo-1635686900258-b85e14a988d0?q=80&w=1200&auto=format&fit=crop&fm=jpg', credit: 'Photo by sander traa on Unsplash', creditHref: 'https://unsplash.com/@sandertraa' }
+      ]
+    }
+  ];
+
+  state = { sel: null, formOpen: false, sent: false, fallback: false, form: { name: '', email: '', phone: '', msg: '' }, contactMode: false, lightbox: null, creditsOpen: false };
+
+  canvasRef = React.createRef();
+  stageRef = React.createRef();
+  markersRef = React.createRef();
+  panelRef = React.createRef();
+  bodyRef = React.createRef();
+  galleriesRef = React.createRef();
+  chromeRef = React.createRef();
+  heroRef = React.createRef();
+  introRef = React.createRef();
+  planeRef = React.createRef();
+  cloudTopRef = React.createRef();
+  cloudMidRef = React.createRef();
+  cloudLowRef = React.createRef();
+  skipRef = React.createRef();
+  loaderRef = React.createRef();
+  sweepRef = React.createRef();
+
+  yaw = -2.0; pitch = 0.05; yawT = -2.0; pitchT = 0.05; vel = 0;
+  camZ = 1.28; camT = 3.05; introDone = false; dragging = false; moved = 0;
+  anims = [];
+
+  get dests() { return Component.DESTINATIONS; }
+
+  componentDidMount() {
+    this.mobile = Math.min(window.innerWidth, window.innerHeight) < 700 || (navigator.maxTouchPoints || 0) > 1;
+    this.byId = {};
+    this.dests.forEach(d => { this.byId[d.id] = d; });
+    this.applyLayout();
+    this._onResize = () => { this.applyLayout(); this.resize(); };
+    window.addEventListener('resize', this._onResize);
+    this._onKey = (e) => {
+      if (e.key === 'Escape') { if (this.state.lightbox) this.closeLightbox(); else if (this.state.creditsOpen) this.toggleCredits(); else if (this.state.formOpen) this.closeForm(); else if (this.state.sel) this.closePanel(); }
+      if (!this.introDone) this.skipIntro();
+    };
+    window.addEventListener('keydown', this._onKey);
+    this._onWheelSkip = () => { if (!this.introDone) this.skipIntro(); };
+    window.addEventListener('wheel', this._onWheelSkip, { passive: true });
+    // Delegált scroll-figyelő: a galéria-kártyák scroll-snap pozíciójából
+    // frissíti az aktív pöttyöt — capture fázisban, mert a scroll esemény
+    // önmagában nem buborékol fel a szülőkhöz.
+    if (this.galleriesRef.current) this.galleriesRef.current.addEventListener('scroll', this.onGalScroll, { capture: true, passive: true });
+
+    if (!this.hasWebGL()) { this.fail(); return; }
+    this.waitForThree(0);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this._onResize);
+    window.removeEventListener('keydown', this._onKey);
+    window.removeEventListener('wheel', this._onWheelSkip);
+    if (this.galleriesRef.current) this.galleriesRef.current.removeEventListener('scroll', this.onGalScroll, { capture: true });
+    clearTimeout(this._camSettleT);
+    cancelAnimationFrame(this.raf);
+    if (this.renderer) this.renderer.dispose();
+  }
+
+  hasWebGL() {
+    try {
+      const c = document.createElement('canvas');
+      return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl')));
+    } catch (e) { return false; }
+  }
+
+  fail() {
+    this.hide(this.loaderRef.current);
+    this.hide(this.introRef.current);
+    this.setState({ fallback: true });
+  }
+
+  hide(el) { if (el) { el.style.transition = 'opacity .5s ease'; el.style.opacity = '0'; setTimeout(() => { if (el) el.style.display = 'none'; }, 520); } }
+
+  waitForThree(t) {
+    if (window.THREE) { try { this.init(window.THREE); } catch (e) { console.error(e); this.fail(); } return; }
+    if (t > 90) { this.fail(); return; }
+    setTimeout(() => this.waitForThree(t + 1), 120);
+  }
+
+  /* ---------- layout (mobil = alsó lap, desktop = oldalpanel) ---------- */
+  applyLayout() {
+    const p = this.panelRef.current; if (!p) return;
+    const narrow = window.innerWidth < 860;
+    this.narrow = narrow;
+    if (narrow) {
+      Object.assign(p.style, { left: '0', right: '0', bottom: '0', top: 'auto', width: 'auto', maxHeight: '82vh', height: 'auto', borderLeft: 'none', borderTop: '1px solid rgba(201,162,39,.34)', boxShadow: '0 -30px 80px rgba(0,0,0,.6)' });
+      p.style.transform = this.state.sel ? 'translateY(0)' : 'translateY(103%)';
+    } else {
+      Object.assign(p.style, { top: '0', bottom: '0', right: '0', left: 'auto', width: 'min(456px, 40vw)', maxHeight: 'none', height: 'auto', borderTop: 'none', borderLeft: '1px solid rgba(201,162,39,.3)', boxShadow: '-30px 0 90px rgba(0,0,0,.55)' });
+      p.style.transform = this.state.sel ? 'translateX(0)' : 'translateX(106%)';
+    }
+    const b = this.bodyRef.current;
+    if (b) b.style.padding = narrow ? '34px 24px 44px' : '44px 40px 56px';
+  }
+
+  /* ---------- three.js ---------- */
+  init(THREE) {
+    const canvas = this.canvasRef.current;
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: !this.mobile, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.mobile ? 1.5 : 2));
+    this.renderer = renderer; this.THREE = THREE;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 200);
+    camera.position.set(0, 0, this.camZ);
+    this.scene = scene; this.camera = camera;
+
+    const earth = new THREE.Group();
+    earth.rotation.order = 'XYZ';
+    scene.add(earth);
+    this.earth = earth;
+
+    // A Föld geometriája és mindkét alanyaga (felszín + légkör) a valódi
+    // earth.obj / earth.mtl párosból érkezik, aszinkron betöltéssel.
+    this.loadEarthModel(THREE);
+
+    const dir = new THREE.DirectionalLight(0xffffff, 0.95);
+    dir.position.set(-1.5, 0.75, 1.6);
+    scene.add(dir);
+    scene.add(new THREE.AmbientLight(0xaebcd6, 0.62));
+    const rim = new THREE.DirectionalLight(0xE0B356, 0.22);
+    rim.position.set(2.4, -0.6, -1.0);
+    scene.add(rim);
+
+    const n = this.mobile ? 700 : 2000;
+    const pos = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      const r = 26 + Math.random() * 42, u = Math.random() * 2 - 1, th = Math.random() * Math.PI * 2, s = Math.sqrt(1 - u * u);
+      pos[i * 3] = r * s * Math.cos(th); pos[i * 3 + 1] = r * u; pos[i * 3 + 2] = r * s * Math.sin(th);
+    }
+    const sg = new THREE.BufferGeometry();
+    sg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    this.stars = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xdfe6f2, size: 0.26, sizeAttenuation: true, transparent: true, opacity: 0.9, depthWrite: false }));
+    scene.add(this.stars);
+
+    this.dests.forEach(d => { d._v = this.latLngToVec3(THREE, d.lat, d.lng, 1.035); });
+    this.markerEls = Array.from(this.markersRef.current.querySelectorAll('[data-marker-id]'));
+
+    this.bindPointer();
+    this.resize();
+    this.raf = requestAnimationFrame(this.tick);
+  }
+
+  /* A valódi Föld-geometriát és -anyagot (earth.obj + earth.mtl) tölti be és
+     fűzi a jelenetbe. Az obj két al-objektumot tartalmaz ("o globe" és
+     "o atmosphere"), a v/vt/vn indexek pedig a teljes fájlon átívelően,
+     csúcsonként mindig megegyeznek — ezért egy egyszerű, saját parszerrel is
+     biztonságosan feldolgozható, nem kell hozzá külön OBJLoader/MTLLoader. */
+  loadEarthModel(THREE) {
+    const objP = fetch('./earth.obj').then(res => {
+      if (!res.ok) throw new Error('earth.obj: HTTP ' + res.status);
+      return res.text();
+    });
+    const load = (url) => new Promise((resolve, reject) => new THREE.TextureLoader().load(url, resolve, undefined, reject));
+    const maxAniso = () => (this.renderer.capabilities && this.renderer.capabilities.getMaxAnisotropy) ? this.renderer.capabilities.getMaxAnisotropy() : 1;
+    // r149-safe color management: sRGBEncoding/outputEncoding on older three,
+    // colorSpace/outputColorSpace on newer — only for the two colour textures,
+    // never for the normal/specular data maps.
+    const asColor = (tex) => {
+      if ('colorSpace' in tex && THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+      else if ('encoding' in tex && THREE.sRGBEncoding) tex.encoding = THREE.sRGBEncoding;
+      tex.anisotropy = maxAniso();
+      return tex;
+    };
+    if ('outputColorSpace' in this.renderer && THREE.SRGBColorSpace) this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    else if ('outputEncoding' in this.renderer && THREE.sRGBEncoding) this.renderer.outputEncoding = THREE.sRGBEncoding;
+
+    // Mobilon jóval kisebb nappali/felhő-textúra (2K a 8K/4K helyett — kb.
+    // 95%, illetve 79%-kal kevesebb adat), és az éjszakai városfény-shadert
+    // el sem kezdjük betölteni: se a plusz textúra letöltése, se a
+    // shader-patch extra ALU-költsége nem indokolt egy finom, könnyen
+    // elveszhető hatásért gyengébb GPU-n / mobilnéző sávszélességén.
+    const dayUrl = this.mobile ? './earth-daymap-mobile.jpg' : './earth-daymap.jpg';
+    const cloudUrl = this.mobile ? './earth-clouds-mobile.jpg' : './earth-clouds.jpg';
+    const nightP = this.mobile ? Promise.resolve(null) : load('./earth-nightmap.jpg').catch(() => null);
+
+    Promise.all([
+      objP, load(dayUrl), load('./earth-specular.jpg'),
+      load('./earth-normal.jpg'), load(cloudUrl), nightP
+    ]).then(([text, dayTex, specTex, nrmTex, cloudTex, nightTex]) => {
+      asColor(dayTex);
+      asColor(cloudTex);
+      specTex.anisotropy = maxAniso();
+      nrmTex.anisotropy = maxAniso();
+      if (nightTex) { asColor(nightTex); }
+
+      const geos = this.parseObj(THREE, text);
+
+      if (geos.globe) {
+        // earth.mtl → "earth_surface": Kd 1 1 1 (a textúra saját színe adja a felszínt).
+        // A Ks 0.2 / Ns 20 fényfolt élesben túl zavaróan csillogott az óceánon,
+        // ezért itt visszafogottabbra (kisebb, halványabb) van hangolva; a valódi
+        // óceán/szárazföld-eloszlást a specularMap adja (víz csillog, szárazföld nem),
+        // a normalMap pedig apró domborzati mikro-részletet ad a low-poly relief fölé.
+        const mat = new THREE.MeshPhongMaterial({
+          map: dayTex, specularMap: specTex, normalMap: nrmTex,
+          specular: 0x223344, shininess: 22
+        });
+        // Éjszakai városfények: a beépített Phong-shadert onBeforeCompile-lal
+        // toldjuk meg (nem írjuk újra a teljes megvilágítást) — a "nap felőli"
+        // oldalon nulla a hatás, a sötét oldalon a night-map finoman átüt a
+        // nappali textúrán. A napirány rögzített world-space vektor, mert a
+        // fényforrásunk nem forog a földgömbbel (az valóban a "nap" szerepét
+        // játssza, a Föld forog alatta) — pontosan ez adja a nap/éjszaka váltást.
+        if (nightTex) {
+          mat.onBeforeCompile = (shader) => {
+            shader.uniforms.nightMap = { value: nightTex };
+            shader.uniforms.uSunDir = { value: new THREE.Vector3(-1.5, 0.75, 1.6).normalize() };
+            shader.vertexShader = shader.vertexShader
+              .replace('#include <common>', '#include <common>\nvarying vec3 vWorldNormal;')
+              .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWorldNormal = normalize(mat3(modelMatrix) * normal);');
+            shader.fragmentShader = shader.fragmentShader
+              .replace('#include <common>', '#include <common>\nuniform sampler2D nightMap;\nuniform vec3 uSunDir;\nvarying vec3 vWorldNormal;')
+              .replace('#include <map_fragment>', [
+                '#include <map_fragment>',
+                'float sunAmt = dot(normalize(vWorldNormal), normalize(uSunDir));',
+                'float nightMix = smoothstep(0.12, -0.22, sunAmt);',
+                'vec3 nightLights = texture2D(nightMap, vUv).rgb * vec3(1.0, 0.82, 0.52) * 1.7;',
+                'diffuseColor.rgb += nightLights * nightMix;'
+              ].join('\n'));
+            mat.userData.shader = shader;
+          };
+        }
+        const globe = new THREE.Mesh(geos.globe, mat);
+        this.earth.add(globe);
+        this.globe = globe; this.globeMat = mat;
+
+        // Felhőréteg: ugyanaz a gömbháló, csúcsnormál mentén kicsit kitolva, hogy
+        // ne "harcoljon" a felszínnel — a felhő-textúra saját fényessége adja a
+        // színt/alfát is, így csak a felhős foltok látszanak, a tiszta ég átlátszó.
+        const cloudGeo = geos.globe.clone();
+        const cp = cloudGeo.attributes.position, cn = cloudGeo.attributes.normal;
+        for (let i = 0; i < cp.count; i++) {
+          cloudGeo.attributes.position.setXYZ(i,
+            cp.getX(i) + cn.getX(i) * 0.012,
+            cp.getY(i) + cn.getY(i) * 0.012,
+            cp.getZ(i) + cn.getZ(i) * 0.012);
+        }
+        const cloudMat = new THREE.MeshLambertMaterial({
+          map: cloudTex, alphaMap: cloudTex, transparent: true, depthWrite: false, opacity: 0.85
+        });
+        const clouds = new THREE.Mesh(cloudGeo, cloudMat);
+        this.earth.add(clouds);
+        this.clouds = clouds;
+      }
+      if (geos.atmosphere) {
+        // earth.mtl → "atmosphere": Kd 0.1022 0.3515 1.0, d 0.18 — halvány, áttetsző kék héj.
+        // Első nekifutásra egy sima, egyenletes színű/áttetszőségű anyag (a
+        // DoubleSide-hibát az javította, hogy nem rétegződött egymásra kétszer),
+        // DE mivel a fényerő a teljes látható felületen egyenletes volt (nincs
+        // szög szerinti elhalványulás), önmagában is éles szélű "gyűrűként"
+        // látszott a Föld pereme mentén. A megoldás egy fresnel-fényudvar
+        // shader: a fényerő a felszín-normál és a nézőirány szögéből adódik,
+        // nulla a korong közepén, és a pereme felé fokozatosan, simán erősödik
+        // — nincs éles határ, csak lágy, sugárzó glow.
+        // Kékes-arany halo: a peremhez közeledve az alap kék légkör-szín
+        // fokozatosan az arany márkaszínbe hajlik (mix a fényerővel súlyozva),
+        // így a legfényesebb rész a limb mentén enyhén meleg, elegáns csillanás.
+        const atmoMat = new THREE.ShaderMaterial({
+          uniforms: { uColor: { value: new THREE.Color(0x4d8fff) }, uGold: { value: new THREE.Color(0xE0B356) } },
+          vertexShader: 'varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+          fragmentShader: 'uniform vec3 uColor; uniform vec3 uGold; varying vec3 vN; void main(){ float d = clamp(-dot(vN, vec3(0.0,0.0,1.0)), 0.0, 1.0); float i = pow(d, 2.6) * 0.9; vec3 c = mix(uColor, uGold, pow(d, 3.2) * 0.4); gl_FragColor = vec4(c, 1.0) * i; }',
+          side: THREE.BackSide, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false
+        });
+        const atmo = new THREE.Mesh(geos.atmosphere, atmoMat);
+        this.earth.add(atmo);
+        this.atmosphere = atmo;
+      }
+      this.startIntro();
+    }).catch(e => { console.error(e); this.fail(); });
+  }
+
+  /* Több "o" al-objektumot tartalmazó OBJ feldolgozása. A pozíció/UV/normál
+     adatok a teljes fájlra nézve egy közös, megosztott buffer (az OBJ-index
+     mindig fájl-szintű, nem áll újra nullától minden "o" után) — csak az
+     indexpuffer különbözik objektumonként, így minden al-objektum saját
+     Mesh-t kaphat a maga anyagával. */
+  parseObj(THREE, text) {
+    const lines = text.split('\n');
+    const positions = [], uvs = [], normals = [];
+    const objects = [];
+    let cur = { name: 'default', indices: [] };
+    objects.push(cur);
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const c0 = line.charCodeAt(0), c1 = line.charCodeAt(1);
+      if (c0 === 111 && c1 === 32) { // "o " — új al-objektum kezdődik
+        cur = { name: line.slice(2).trim(), indices: [] };
+        objects.push(cur);
+      } else if (c0 === 118 && c1 === 32) { // "v "
+        const p = line.split(' ');
+        positions.push(parseFloat(p[1]), parseFloat(p[2]), parseFloat(p[3]));
+      } else if (c0 === 118 && c1 === 116) { // "vt"
+        const p = line.split(' ');
+        uvs.push(parseFloat(p[1]), parseFloat(p[2]));
+      } else if (c0 === 118 && c1 === 110) { // "vn"
+        const p = line.split(' ');
+        normals.push(parseFloat(p[1]), parseFloat(p[2]), parseFloat(p[3]));
+      } else if (c0 === 102 && c1 === 32) { // "f " — a v/vt/vn index mindig azonos csúcsonként
+        const p = line.split(' ');
+        for (let k = 1; k < p.length; k++) cur.indices.push(parseInt(p[k], 10) - 1);
+      }
+    }
+    // A modellbe kb. 23.5°-os Z-tengely körüli forgatás van sütve (a Föld valódi
+    // tengelydőlése — a globe (0,1,0) pólusa a hálóban (-0.3987,0.9171,0)-nál van,
+    // ami pontosan egy 23.5°-os Z-forgatásnak felel meg). A latLngToVec3 viszont
+    // sima, döntés nélküli gömböt feltételez, ezért itt kiforgatjuk (-23.5°-kal)
+    // a nyers pozíció-/normáladatokat, hogy a markerek a valós földrajzi helyükre
+    // kerüljenek a modellen.
+    const cosT = 0.917060074385124, sinT = -0.39874906892524625;
+    for (let i = 0; i < positions.length; i += 3) {
+      const x = positions[i], y = positions[i + 1];
+      positions[i] = x * cosT - y * sinT;
+      positions[i + 1] = x * sinT + y * cosT;
+    }
+    for (let i = 0; i < normals.length; i += 3) {
+      const x = normals[i], y = normals[i + 1];
+      normals[i] = x * cosT - y * sinT;
+      normals[i + 1] = x * sinT + y * cosT;
+    }
+
+    const posAttr = new THREE.Float32BufferAttribute(positions, 3);
+    const uvAttr = uvs.length ? new THREE.Float32BufferAttribute(uvs, 2) : null;
+    const nrmAttr = normals.length ? new THREE.Float32BufferAttribute(normals, 3) : null;
+    const result = {};
+    objects.forEach(o => {
+      if (!o.indices.length) return;
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', posAttr);
+      if (uvAttr) geo.setAttribute('uv', uvAttr);
+      if (nrmAttr) geo.setAttribute('normal', nrmAttr);
+      geo.setIndex(o.indices);
+      result[o.name] = geo;
+    });
+    return result;
+  }
+
+  latLngToVec3(THREE, lat, lng, r) {
+    const phi = (90 - lat) * Math.PI / 180, th = (lng + 180) * Math.PI / 180;
+    return new THREE.Vector3(-r * Math.sin(phi) * Math.cos(th), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(th));
+  }
+
+  resize() {
+    if (!this.renderer) return;
+    const el = this.stageRef.current;
+    this.w = el.clientWidth || window.innerWidth;
+    this.h = el.clientHeight || window.innerHeight;
+    this.renderer.setSize(this.w, this.h, false);
+    this.camera.aspect = this.w / this.h;
+    this.camera.fov = this.w / this.h < 0.85 ? 48 : 38;
+    this.camera.updateProjectionMatrix();
+  }
+
+  /* ---------- saját drag + zoom vezérlés (nincs OrbitControls) ---------- */
+  bindPointer() {
+    const el = this.stageRef.current;
+    const pts = new Map();
+    let lastX = 0, lastY = 0, pinch = 0;
+    el.addEventListener('pointerdown', e => {
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 1) { this.dragging = true; this.moved = 0; lastX = e.clientX; lastY = e.clientY; this.vel = 0; el.style.cursor = 'grabbing'; }
+      if (pts.size === 2) { const a = [...pts.values()]; pinch = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); }
+      if (!this.introDone) this.skipIntro();
+    });
+    el.addEventListener('pointermove', e => {
+      if (!pts.has(e.pointerId)) return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size >= 2) {
+        const a = [...pts.values()]; const d = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
+        if (pinch) this.camT = Math.max(1.72, Math.min(5.2, this.camT * (pinch / d)));
+        pinch = d; return;
+      }
+      const dx = e.clientX - lastX, dy = e.clientY - lastY;
+      lastX = e.clientX; lastY = e.clientY;
+      this.moved += Math.abs(dx) + Math.abs(dy);
+      const k = 0.0052 * (this.camT / 3);
+      this.yawT += dx * k; this.vel = dx * k;
+      this.pitchT = Math.max(-1.15, Math.min(1.15, this.pitchT - dy * k));
+      this.userTouched = true;
+    });
+    const up = e => { pts.delete(e.pointerId); if (pts.size === 0) { this.dragging = false; el.style.cursor = 'grab'; } pinch = 0; };
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+    el.addEventListener('pointerleave', up);
+    el.addEventListener('wheel', e => {
+      e.preventDefault();
+      this.camT = Math.max(1.72, Math.min(5.2, this.camT + e.deltaY * 0.0017));
+      this.userTouched = true;
+    }, { passive: false });
+    el.addEventListener('click', () => { if (this.moved < 7 && this.state.sel && this.introDone) this.closePanel(); });
+  }
+
+  tick = () => {
+    this.raf = requestAnimationFrame(this.tick);
+    if (!this.renderer) return;
+    if (!this.dragging) {
+      const auto = (this.props.autoRotate ?? true) && !this.state.sel && this.introDone;
+      if (auto) this.yawT += 0.0011;
+      if (!this.introDone) this.yawT += 0.0055;
+      if (Math.abs(this.vel) > 0.00015) { this.yawT += this.vel; this.vel *= 0.93; } else this.vel = 0;
+    }
+    this.yaw += (this.yawT - this.yaw) * 0.10;
+    this.pitch += (this.pitchT - this.pitch) * 0.10;
+    this.camZ += (this.camT - this.camZ) * (this.introDone ? 0.085 : 0.022);
+    this.earth.rotation.set(this.pitch, this.yaw, 0);
+    if (this.stars) this.stars.rotation.y = this.yaw * 0.06;
+    if (this.clouds) this.clouds.rotation.y += 0.00022;
+    this.camera.position.z = this.camZ;
+    this.renderer.render(this.scene, this.camera);
+    this.updateMarkers();
+  };
+
+  updateMarkers() {
+    if (!this.markerEls || !this.markerEls.length) return;
+    // A célpont-jelölők csak akkor jelenhetnek meg, ha a Föld modell már
+    // ténylegesen látható (betöltve és az intro feloldva) — enélkül a
+    // jelölők a még üres/betöltő gömb fölött villantak volna fel.
+    if (!this.globe || !this.introDone) {
+      for (const el of this.markerEls) { el.style.opacity = '0'; el.style.pointerEvents = 'none'; }
+      return;
+    }
+    const cam = this.camera, T = this.THREE;
+    const items = [];
+    for (const el of this.markerEls) {
+      const d = this.byId[el.dataset.markerId]; if (!d || !d._v) continue;
+      const world = d._v.clone().applyMatrix4(this.earth.matrixWorld);
+      const toCam = cam.position.clone().sub(world).normalize();
+      const facing = world.clone().normalize().dot(toCam);
+      const p = world.clone().project(cam);
+      items.push({ el, facing, x: (p.x * 0.5 + 0.5) * this.w, y: (-p.y * 0.5 + 0.5) * this.h, z: p.z });
+    }
+    items.sort((a, b) => a.z - b.z);
+    const placed = [];
+    for (const it of items) {
+      const vis = Math.max(0, Math.min(1, (it.facing - 0.015) / 0.3));
+      it.el.style.transform = 'translate3d(' + it.x.toFixed(1) + 'px,' + it.y.toFixed(1) + 'px,0)';
+      it.el.style.opacity = vis.toFixed(3);
+      it.el.style.pointerEvents = vis > 0.45 ? 'auto' : 'none';
+      const lbl = it.el.querySelector('[data-label]');
+      const active = it.el.dataset.markerId === this.state.sel || it.el.dataset.hover === '1';
+      let show = vis > 0.8;
+      if (show) for (const r of placed) { if (Math.abs(r.x - it.x) < 132 && Math.abs(r.y - it.y) < 26) { show = false; break; } }
+      if (active && vis > 0.3) show = true;
+      if (lbl) {
+        lbl.style.opacity = show ? '1' : '0';
+        lbl.style.color = active ? '#F0CE86' : '#F2EEE6';
+      }
+      const dot = it.el.querySelector('[data-dot]');
+      if (dot) dot.style.transform = active ? 'scale(1.45)' : 'scale(1)';
+      if (dot) dot.style.transition = 'transform .3s ease';
+      if (show) placed.push({ x: it.x, y: it.y });
+    }
+  }
+
+  /* ---------- intró ---------- */
+  startIntro() {
+    if (this.introStarted) return;
+    this.introStarted = true;
+    this.hide(this.loaderRef.current);
+    if (this.props.playIntro === false) { this.skipIntro(); return; }
+    const A = (el, kf, ms, delay, ease) => {
+      if (!el) return;
+      const a = el.animate(kf, { duration: ms, delay: delay || 0, easing: ease || 'cubic-bezier(.4,0,.2,1)', fill: 'both' });
+      this.anims.push(a); return a;
+    };
+    // Gyorsabb, határozottabb intró (~2.6s teljes hossz — social-videóra
+    // szabva): a repülő élesebb ívvel, nagyobb lendülettel száll fel, a
+    // felhők ezzel arányosan gyorsabban suhannak el, és amint a Föld
+    // felfénylik, egy finom "szatén" fénysáv fut végig rajta egyszer.
+    const cv = this.canvasRef.current;
+    if (cv) { cv.style.opacity = '0'; A(cv, [{ opacity: 0 }, { opacity: 1 }], 1000, 950, 'ease-out'); }
+    A(this.planeRef.current, [
+      { transform: 'translateY(50vh) scale(.5) rotate(-5deg)', opacity: 0 },
+      { transform: 'translateY(16vh) scale(.88) rotate(-3deg)', opacity: 1, offset: 0.24 },
+      { transform: 'translateY(-16vh) scale(1.14) rotate(2deg)', opacity: 1, offset: 0.62 },
+      { transform: 'translateY(-52vh) scale(1.35) rotate(4deg)', opacity: 0 }
+    ], 1900, 60, 'cubic-bezier(.3,0,.2,1)');
+    A(this.cloudLowRef.current, [{ transform: 'translateY(10vh) scale(1.1)', opacity: .95 }, { transform: 'translateY(60vh) scale(1.5)', opacity: 0 }], 1750, 100);
+    A(this.cloudMidRef.current, [{ transform: 'translateY(0) scale(1)', opacity: .9 }, { transform: 'translateY(46vh) scale(1.45)', opacity: 0 }], 1820, 220);
+    A(this.cloudTopRef.current, [{ transform: 'translateY(-6vh) scale(.95)', opacity: .8 }, { transform: 'translateY(-52vh) scale(1.6)', opacity: 0 }], 1900, 380);
+    A(this.introRef.current, [{ opacity: 1 }, { opacity: 1, offset: .78 }, { opacity: 0 }], 2600, 0, 'ease-in');
+    const sw = this.sweepRef.current;
+    if (sw) A(sw, [
+      { transform: 'translateX(-70%)', opacity: 0 },
+      { transform: 'translateX(-20%)', opacity: 1, offset: 0.35 },
+      { transform: 'translateX(40%)', opacity: 0 }
+    ], 850, 1150, 'ease-in-out');
+    setTimeout(() => this.finishIntro(), 2550);
+  }
+
+  skipIntro() {
+    if (this.introDone) return;
+    this.anims.forEach(a => { try { a.cancel(); } catch (e) {} });
+    this.anims = [];
+    const cv = this.canvasRef.current; if (cv) { cv.style.transition = 'opacity .4s ease'; cv.style.opacity = '1'; }
+    this.camZ = 2.6;
+    this.finishIntro();
+  }
+
+  finishIntro() {
+    if (this.introDone) return;
+    this.introDone = true;
+    this.hide(this.loaderRef.current);
+    const intro = this.introRef.current;
+    if (intro) { intro.style.transition = 'opacity .45s ease'; intro.style.opacity = '0'; setTimeout(() => { if (intro) intro.style.display = 'none'; }, 480); }
+    const ch = this.chromeRef.current;
+    if (ch) ch.animate([{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'none' }], { duration: 1100, easing: 'cubic-bezier(.22,.61,.36,1)', fill: 'both' });
+  }
+
+  /* ---------- kiválasztás / panel ---------- */
+  showGallery(id) {
+    const g = this.galleriesRef.current; if (!g) return;
+    g.querySelectorAll('[data-gal-wrap]').forEach(el => { el.style.display = el.dataset.galWrap === id ? 'block' : 'none'; });
+    const scroller = g.querySelector('[data-gal="' + id + '"]');
+    if (!scroller) return;
+    scroller.scrollLeft = 0;
+    if (!this._galIdx) this._galIdx = {};
+    this._galIdx[id] = 0;
+    this.setActiveDot(id, 0);
+  }
+
+  galCardStep(scroller) {
+    const card = scroller.firstElementChild;
+    const gap = parseFloat(getComputedStyle(scroller).columnGap || getComputedStyle(scroller).gap || '10') || 10;
+    return card ? card.getBoundingClientRect().width + gap : scroller.clientWidth;
+  }
+
+  setActiveDot(id, idx) {
+    const dots = this.galleriesRef.current && this.galleriesRef.current.querySelector('[data-gal-dots="' + id + '"]');
+    if (!dots) return;
+    Array.from(dots.children).forEach((dot, i) => {
+      dot.style.background = i === idx ? '#E0B356' : 'rgba(242,238,230,.28)';
+    });
+  }
+
+  /* Az aktuális index egy sima state-map-ben (this._galIdx) van nyilvántartva,
+     NEM a scrollLeft-ből visszaszámolva — egymást gyorsan követő kattintások
+     esetén a folyamatban lévő smooth-scroll animáció és a scroll-snap
+     kölcsönhatása megbízhatatlanná tenné a scrollLeft-alapú visszaolvasást.
+     A kézi húzást/swipe-ot az onGalScroll szinkronizálja vissza ebbe az
+     állapotba, miután a görgetés megnyugodott. */
+  onGalNav = (e) => {
+    const id = e.currentTarget.dataset.galId;
+    const dir = parseInt(e.currentTarget.dataset.galDir, 10);
+    const scroller = this.galleriesRef.current && this.galleriesRef.current.querySelector('[data-gal="' + id + '"]');
+    if (!scroller) return;
+    if (!this._galIdx) this._galIdx = {};
+    const count = scroller.children.length;
+    const cur = this._galIdx[id] || 0;
+    const next = Math.max(0, Math.min(count - 1, cur + dir));
+    this._galIdx[id] = next;
+    scroller.scrollTo({ left: next * this.galCardStep(scroller), behavior: 'smooth' });
+    this.setActiveDot(id, next);
+  };
+
+  onGalDot = (e) => {
+    const id = e.currentTarget.dataset.galId;
+    const idx = parseInt(e.currentTarget.dataset.dotIdx, 10);
+    const scroller = this.galleriesRef.current && this.galleriesRef.current.querySelector('[data-gal="' + id + '"]');
+    if (!scroller) return;
+    if (!this._galIdx) this._galIdx = {};
+    this._galIdx[id] = idx;
+    scroller.scrollTo({ left: idx * this.galCardStep(scroller), behavior: 'smooth' });
+    this.setActiveDot(id, idx);
+  };
+
+  onGalScroll = (e) => {
+    if (!e.target || !e.target.dataset || !e.target.dataset.gal) return;
+    const scroller = e.target;
+    clearTimeout(this._galScrollT);
+    this._galScrollT = setTimeout(() => {
+      const step = this.galCardStep(scroller);
+      const idx = step ? Math.round(scroller.scrollLeft / step) : 0;
+      if (!this._galIdx) this._galIdx = {};
+      this._galIdx[scroller.dataset.gal] = idx;
+      this.setActiveDot(scroller.dataset.gal, idx);
+    }, 120);
+  };
+
+  /* Galéria-kép megnyitása nagyítva. Az image-slot komponens saját
+     klikkje csak szerkeszthető (omelette-runtime-beli) állapotban csinál
+     bármit is — itt, kifelé publikált, olvasható nézetben inert, így a
+     kártya-wrapperre tett saját onClick nem ütközik vele. A kredit-linkre
+     kattintás image-slot-on belül stopPropagation-öl, ezért az nem nyitja
+     meg a lightboxot, hanem simán kiviszi az Unsplash oldalra. */
+  openLightbox = (e) => {
+    const d = e.currentTarget.dataset;
+    if (!d.lbSrc) return;
+    this.setState({ lightbox: { src: d.lbSrc, credit: d.lbCredit, creditHref: d.lbCreditHref } });
+  };
+  closeLightbox = () => this.setState({ lightbox: null });
+  toggleCredits = () => this.setState(s => ({ creditsOpen: !s.creditsOpen }));
+
+  focusOn(d) {
+    if (!d._v) return;
+    const v = d._v;
+    const L = Math.hypot(v.x, v.z);
+    let y = Math.atan2(-v.x, v.z);
+    const k = Math.round((this.yawT - y) / (Math.PI * 2));
+    this.yawT = y + k * Math.PI * 2;
+    this.pitchT = Math.max(-1.05, Math.min(1.05, Math.atan2(v.y, L)));
+    // "Becsapódás": a végső, nyugalmi távolságnál egy pillanatra közelebb
+    // lövünk be — a kamera-lerp gyorsan odakap, majd ~260ms után visszaáll
+    // a végleges cél, ami finoman visszaenyhül rá. Egy sima zoom helyett ez
+    // ad egy kis, videóban is érezhető "punch"-ot.
+    const target = this.narrow ? 2.55 : 2.3;
+    this.camT = Math.max(1.85, target - 0.4);
+    clearTimeout(this._camSettleT);
+    this._camSettleT = setTimeout(() => { this.camT = target; }, 260);
+    this.vel = 0;
+  }
+
+  select(d) {
+    const p = this.panelRef.current;
+    if (this.state.sel && this.state.sel !== d.id) {
+      const b = this.bodyRef.current;
+      if (b) b.style.opacity = '0';
+      setTimeout(() => {
+        this.setState({ sel: d.id });
+        this.showGallery(d.id);
+        if (b) { b.scrollTop = 0; b.style.opacity = '1'; }
+        if (p) p.scrollTop = 0;
+      }, 200);
+    } else {
+      this.setState({ sel: d.id });
+      this.showGallery(d.id);
+      if (p) { p.scrollTop = 0; p.style.transform = this.narrow ? 'translateY(0)' : 'translateX(0)'; }
+      const h = this.heroRef.current;
+      if (h) { h.style.transition = 'opacity .5s ease'; h.style.opacity = '0'; }
+    }
+    if (p) p.style.transform = this.narrow ? 'translateY(0)' : 'translateX(0)';
+    this.focusOn(d);
+  }
+
+  closePanel = () => {
+    const p = this.panelRef.current;
+    if (p) p.style.transform = this.narrow ? 'translateY(103%)' : 'translateX(106%)';
+    this.camT = 3.05;
+    const h = this.heroRef.current;
+    if (h) h.style.opacity = '1';
+    setTimeout(() => this.setState({ sel: null }), 400);
+  };
+
+  onMarkerClick = (e) => {
+    if (this.moved > 7) return;
+    const el = e.currentTarget;
+    const d = this.byId[el.dataset.markerId];
+    if (!d) return;
+    this.flashMarker(el);
+    this.select(d);
+  };
+  onMarkerEnter = (e) => { e.currentTarget.dataset.hover = '1'; };
+  onMarkerLeave = (e) => { e.currentTarget.dataset.hover = '0'; };
+
+  /* Kattintáskor a jelölő egy pillanatra felvillan — a gyűrű kitágul és
+     elhalványul, a mag felfényesedik — ezután a folyamatos lüktetés
+     (mrd-halo) veszi vissza a szót. Tisztán WAAPI, nem nyúl a CSS-hez. */
+  flashMarker(el) {
+    const ring = el.querySelector('[data-flash]');
+    if (ring) ring.animate(
+      [
+        { transform: 'scale(.9)', opacity: 1, offset: 0 },
+        { transform: 'scale(2.3)', opacity: 0, offset: 1 }
+      ],
+      { duration: 480, easing: 'cubic-bezier(.22,.61,.36,1)' }
+    );
+    const core = el.querySelector('[data-core]');
+    if (core) core.animate(
+      [{ filter: 'brightness(1.9)' }, { filter: 'brightness(1)' }],
+      { duration: 420, easing: 'ease-out' }
+    );
+  }
+
+  openContact = () => this.setState({ formOpen: true, sent: false, contactMode: true });
+  openOffer = () => this.setState({ formOpen: true, sent: false, contactMode: false });
+  closeForm = () => this.setState({ formOpen: false, sent: false });
+  submitForm = () => this.setState({ sent: true });
+  onScrimClick = (e) => { this.closeForm(); };
+  stop = (e) => { e.stopPropagation(); };
+
+  setName = e => this.setState({ form: Object.assign({}, this.state.form, { name: e.target.value }) });
+  setEmail = e => this.setState({ form: Object.assign({}, this.state.form, { email: e.target.value }) });
+  setPhone = e => this.setState({ form: Object.assign({}, this.state.form, { phone: e.target.value }) });
+  setMsg = e => this.setState({ form: Object.assign({}, this.state.form, { msg: e.target.value }) });
+
+  renderVals() {
+    const sel = this.byId ? this.byId[this.state.sel] : null;
+    const s = this.state;
+    return {
+      dests: this.dests,
+      sel: sel || { region: '', name: '', short: '', long: '', duration: '', group: '', includes: '', price: '' },
+      selPrograms: sel ? sel.programs : [],
+      formTitle: s.contactMode ? 'Kapcsolatfelvétel' : (sel ? sel.name : 'Kapcsolatfelvétel'),
+      formOpen: s.formOpen, sent: s.sent, notSent: !s.sent, fallback: s.fallback,
+      fName: s.form.name, fEmail: s.form.email, fPhone: s.form.phone, fMsg: s.form.msg,
+      setName: this.setName, setEmail: this.setEmail, setPhone: this.setPhone, setMsg: this.setMsg,
+      submitForm: this.submitForm, closeForm: this.closeForm, openContact: this.openContact,
+      openOffer: this.openOffer, closePanel: this.closePanel, onScrimClick: this.onScrimClick, stop: this.stop,
+      skipIntro: () => this.skipIntro(),
+      onMarkerClick: this.onMarkerClick, onMarkerEnter: this.onMarkerEnter, onMarkerLeave: this.onMarkerLeave,
+      onGalNav: this.onGalNav, onGalDot: this.onGalDot,
+      lightboxOpen: !!s.lightbox, lightboxSrc: s.lightbox ? s.lightbox.src : '',
+      lightboxCredit: s.lightbox ? s.lightbox.credit : '',
+      openLightbox: this.openLightbox, closeLightbox: this.closeLightbox,
+      creditsOpen: s.creditsOpen, toggleCredits: this.toggleCredits,
+      canvasRef: this.canvasRef, stageRef: this.stageRef, markersRef: this.markersRef,
+      panelRef: this.panelRef, bodyRef: this.bodyRef, galleriesRef: this.galleriesRef,
+      chromeRef: this.chromeRef, heroRef: this.heroRef, introRef: this.introRef, planeRef: this.planeRef,
+      cloudTopRef: this.cloudTopRef, cloudMidRef: this.cloudMidRef, cloudLowRef: this.cloudLowRef,
+      skipRef: this.skipRef, loaderRef: this.loaderRef, sweepRef: this.sweepRef
+    };
+  }
+}
+
+</script>
+</body>
+</html>

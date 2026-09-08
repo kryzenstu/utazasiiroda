@@ -1,0 +1,13 @@
+# Exported by three-d-stage
+newmtl earth_surface
+Kd 1.0000 1.0000 1.0000
+Ks 0.2000 0.2000 0.2000
+Ns 20
+d 1.0000
+
+newmtl atmosphere
+Kd 0.1022 0.3515 1.0000
+Ks 0.2000 0.2000 0.2000
+Ns 0
+d 0.1800
+
