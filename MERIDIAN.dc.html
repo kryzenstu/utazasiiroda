@@ -81,7 +81,7 @@ a:hover { color: #F0CE86; }
             <div style="position:relative">
               <div data-gal="{{ d.id }}" class="mrd-gal" style="display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px">
                 <sc-for list="{{ d.images }}" as="im" hint-placeholder-count="3">
-                  <div onClick="{{ openLightbox }}" data-lb-src="{{ im.src }}" data-lb-credit="{{ im.credit }}" data-lb-credit-href="{{ im.creditHref }}" style="flex:0 0 74%;aspect-ratio:4/3;scroll-snap-align:start;border:1px solid rgba(201,162,39,.22);cursor:zoom-in">
+                  <div data-gal-card onClick="{{ openLightbox }}" data-lb-src="{{ im.src }}" data-lb-credit="{{ im.credit }}" data-lb-credit-href="{{ im.creditHref }}" style="flex:0 0 auto;width:74%;aspect-ratio:4/3;scroll-snap-align:start;border:1px solid rgba(201,162,39,.22);cursor:zoom-in">
                     <image-slot id="{{ im.id }}" shape="rect" placeholder="{{ im.label }}" src="{{ im.src }}" credit="{{ im.credit }}" credit-href="{{ im.creditHref }}"></image-slot>
                   </div>
                 </sc-for>
@@ -543,7 +543,13 @@ class Component extends DCLogic {
     this.byId = {};
     this.dests.forEach(d => { this.byId[d.id] = d; });
     this.applyLayout();
-    this._onResize = () => { this.applyLayout(); this.resize(); };
+    this._onResize = () => {
+      this.applyLayout(); this.resize();
+      if (this.state.sel) {
+        const scroller = this.galleriesRef.current && this.galleriesRef.current.querySelector('[data-gal="' + this.state.sel + '"]');
+        if (scroller) this.sizeGalCards(scroller);
+      }
+    };
     window.addEventListener('resize', this._onResize);
     this._onKey = (e) => {
       if (e.key === 'Escape') { if (this.state.lightbox) this.closeLightbox(); else if (this.state.creditsOpen) this.toggleCredits(); else if (this.state.formOpen) this.closeForm(); else if (this.state.sel) this.closePanel(); }
@@ -598,7 +604,16 @@ class Component extends DCLogic {
     const narrow = window.innerWidth < 860;
     this.narrow = narrow;
     if (narrow) {
-      Object.assign(p.style, { left: '0', right: '0', bottom: '0', top: 'auto', width: 'auto', maxHeight: '82vh', height: 'auto', borderLeft: 'none', borderTop: '1px solid rgba(201,162,39,.34)', boxShadow: '0 -30px 80px rgba(0,0,0,.6)' });
+      // width itt szándékosan explicit px, nem 'auto' (bár left:0;right:0
+      // mellett az is helyesen ugyanerre az értékre oldódna fel): valódi
+      // WebKit/Safari-n a panelen belüli, overflow-x:auto görgetős
+      // galéria kártyáinak százalékos flex-basise (74%) körkörös
+      // méretezésbe futott, amikor a szélesség csak left/right-ból
+      // implicit "auto"-ként adódott — a kártyák scrollWidth-je több
+      // százezer px-re szaladt fel, a bennük lévő kép pedig emiatt a
+      // látható kereten kívülre nyúlt (láthatatlanná vált). Egy konkrét
+      // px-szélesség megszünteti a kétértelműséget, amiből a hiba fakadt.
+      Object.assign(p.style, { left: '0', right: '0', bottom: '0', top: 'auto', width: window.innerWidth + 'px', maxHeight: '82vh', height: 'auto', borderLeft: 'none', borderTop: '1px solid rgba(201,162,39,.34)', boxShadow: '0 -30px 80px rgba(0,0,0,.6)' });
       p.style.transform = this.state.sel ? 'translateY(0)' : 'translateY(103%)';
     } else {
       Object.assign(p.style, { top: '0', bottom: '0', right: '0', left: 'auto', width: 'min(456px, 40vw)', maxHeight: 'none', height: 'auto', borderTop: 'none', borderLeft: '1px solid rgba(201,162,39,.3)', boxShadow: '-30px 0 90px rgba(0,0,0,.55)' });
@@ -1028,10 +1043,26 @@ class Component extends DCLogic {
     g.querySelectorAll('[data-gal-wrap]').forEach(el => { el.style.display = el.dataset.galWrap === id ? 'block' : 'none'; });
     const scroller = g.querySelector('[data-gal="' + id + '"]');
     if (!scroller) return;
+    this.sizeGalCards(scroller);
     scroller.scrollLeft = 0;
     if (!this._galIdx) this._galIdx = {};
     this._galIdx[id] = 0;
     this.setActiveDot(id, 0);
+  }
+
+  /* A galéria-kártyák szélessége itt, JS-ből, KÉSZ PX-BEN kerül rá — nem
+     CSS flex:0 0 74%-ként. Valódi WebKit/Safari-n (nem a Chromium-alapú
+     mobil-emulációkban!) a százalékos flex-basis egy overflow-x:auto
+     görgetős, aspect-ratio-s flex-elemen körkörös méretezésbe futott: a
+     kártyák (és bennük a kép) szélessége több százezer px-re szaladt fel,
+     ami miatt a kép a látható kereten kívülre nyúlt — így tűnt el a
+     galéria mobilon minden más böngészőben helyesen működő oldalon. Egy
+     JS-ben kiszámolt, már kész px-érték nem hagy teret ennek a körkörös
+     számításnak. */
+  sizeGalCards(scroller) {
+    const w = Math.round(scroller.clientWidth * 0.74);
+    if (!w) return;
+    scroller.querySelectorAll('[data-gal-card]').forEach(card => { card.style.width = w + 'px'; });
   }
 
   galCardStep(scroller) {
