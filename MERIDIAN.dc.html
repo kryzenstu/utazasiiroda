@@ -23,6 +23,24 @@ a:hover { color: #F0CE86; }
 .mrd-scroll::-webkit-scrollbar { width: 4px }
 .mrd-scroll::-webkit-scrollbar-thumb { background: rgba(201,162,39,.35); border-radius: 4px }
 .mrd-gal::-webkit-scrollbar { height: 0 }
+.mrd-header { padding: 30px 34px; gap: 20px; flex-wrap: wrap; }
+.mrd-navrow { gap: 10px; }
+.mrd-brand-title { font-size: 23px; letter-spacing: .5em; }
+.mrd-brand-sub { font-size: 9.5px; letter-spacing: .34em; }
+.mrd-navbtn-lang { padding: 11px 14px; font-size: 10px; letter-spacing: .18em; }
+.mrd-navbtn-contact { padding: 11px 20px; font-size: 10px; letter-spacing: .28em; }
+/* Keskeny (mobil) nézetben a fejléc jobb oldalán a nyelvváltó gomb megjelenése
+   előtt csak a Kapcsolat gomb fért el kényelmesen — kettesben kicsúsztak a
+   látható területről. Kisebb padding/betűméret/betűköz + flex-wrap: ha mégsem
+   férnének egy sorba, a gombsor a márka alá törik, nem a képen kívülre. */
+@media (max-width: 480px) {
+  .mrd-header { padding: 18px 16px; gap: 10px; }
+  .mrd-navrow { gap: 6px; }
+  .mrd-brand-title { font-size: 16px; letter-spacing: .28em; }
+  .mrd-brand-sub { font-size: 7px; letter-spacing: .2em; }
+  .mrd-navbtn-lang { padding: 8px 10px; font-size: 8.5px; letter-spacing: .08em; }
+  .mrd-navbtn-contact { padding: 8px 12px; font-size: 8.5px; letter-spacing: .12em; }
+}
 </style>
 <script src="./image-slot.js"></script>
 <script src="https://unpkg.com/three@0.149.0/build/three.min.js"></script>
@@ -49,14 +67,14 @@ a:hover { color: #F0CE86; }
   </div>
 
   <div ref="{{ chromeRef }}" style="position:absolute;inset:0;pointer-events:none;opacity:0">
-    <div style="position:absolute;top:0;left:0;right:0;display:flex;align-items:flex-start;justify-content:space-between;padding:30px 34px;gap:20px">
+    <div class="mrd-header" style="position:absolute;top:0;left:0;right:0;display:flex;align-items:flex-start;justify-content:space-between">
       <div style="pointer-events:auto">
-        <div style="font-family:'Cormorant Garamond',serif;font-size:23px;letter-spacing:.5em;color:#F2EEE6;line-height:1">MERIDIAN</div>
-        <div style="margin-top:9px;font-size:9.5px;letter-spacing:.34em;text-transform:uppercase;color:rgba(224,179,86,.8)">{{ t.brandSubtitle }}</div>
+        <div class="mrd-brand-title" style="font-family:'Cormorant Garamond',serif;color:#F2EEE6;line-height:1">MERIDIAN</div>
+        <div class="mrd-brand-sub" style="margin-top:9px;text-transform:uppercase;color:rgba(224,179,86,.8)">{{ t.brandSubtitle }}</div>
       </div>
-      <div style="pointer-events:auto;display:flex;align-items:center;gap:10px">
-        <button type="button" onClick="{{ toggleLang }}" aria-label="{{ t.langToggleAria }}" style="background:rgba(242,238,230,.04);border:1px solid rgba(201,162,39,.4);color:#F2EEE6;padding:11px 14px;font-family:Manrope,sans-serif;font-size:10px;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;backdrop-filter:blur(10px)" style-hover="background:rgba(201,162,39,.16);border-color:rgba(224,179,86,.75)">{{ langLabel }}</button>
-        <button type="button" onClick="{{ openContact }}" style="background:rgba(242,238,230,.04);border:1px solid rgba(201,162,39,.4);color:#F2EEE6;padding:11px 20px;font-family:Manrope,sans-serif;font-size:10px;letter-spacing:.28em;text-transform:uppercase;cursor:pointer;backdrop-filter:blur(10px)" style-hover="background:rgba(201,162,39,.16);border-color:rgba(224,179,86,.75)">{{ t.navContact }}</button>
+      <div class="mrd-navrow" style="pointer-events:auto;display:flex;align-items:center">
+        <button type="button" class="mrd-navbtn-lang" onClick="{{ toggleLang }}" aria-label="{{ t.langToggleAria }}" style="background:rgba(242,238,230,.04);border:1px solid rgba(201,162,39,.4);color:#F2EEE6;font-family:Manrope,sans-serif;text-transform:uppercase;cursor:pointer;backdrop-filter:blur(10px)" style-hover="background:rgba(201,162,39,.16);border-color:rgba(224,179,86,.75)">{{ langLabel }}</button>
+        <button type="button" class="mrd-navbtn-contact" onClick="{{ openContact }}" style="background:rgba(242,238,230,.04);border:1px solid rgba(201,162,39,.4);color:#F2EEE6;font-family:Manrope,sans-serif;text-transform:uppercase;cursor:pointer;backdrop-filter:blur(10px)" style-hover="background:rgba(201,162,39,.16);border-color:rgba(224,179,86,.75)">{{ t.navContact }}</button>
       </div>
     </div>
 
